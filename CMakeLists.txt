@@ -36,6 +36,20 @@ set(_GRPC_GRPCPP gRPC::grpc++)
 set(_REFLECTION gRPC::grpc++_reflection)
 set(BOOST_DIR /usr/local/boost_1_75_0)
 
+# liboblivious.
+#include_directories(third_party/liboblivious/include)
+add_custom_target(build_liboblivious
+    COMMAND make -C "${CMAKE_CURRENT_SOURCE_DIR}/third_party/liboblivious" -j liboblivious.a
+)
+add_library(liboblivious STATIC IMPORTED)
+set_target_properties(liboblivious
+    PROPERTIES
+    IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/third_party/liboblivious/liboblivious.a"
+    INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/third_party/liboblivious/include"
+)
+add_dependencies(liboblivious build_liboblivious)
+link_libraries(liboblivious)
+
 include_directories(include)
 
 # convenience macro for adding test dependencies
