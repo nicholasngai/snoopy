@@ -7,6 +7,7 @@
 #include <type_traits>
 #include <cstring>
 #include <stdlib.h>
+#include <liboblivious/primitives.h>
 
 #ifdef USE_AVX2
 #include <intrinsics/immintrin.h>
