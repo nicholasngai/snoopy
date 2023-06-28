@@ -13,8 +13,6 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -march=native")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
-set(CMAKE_CXX_FLAGS_DEBUG "-gstabs -gstabs+")
 
 # set OE_CRYPTO_LIB to either "mbedtls" or "openssl" based on the crypto wrapper to be used.
 # OE_CRYPTO_LIB is case sensitive. Use all lowercase letters.
