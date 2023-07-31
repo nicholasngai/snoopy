@@ -27,8 +27,6 @@ fi
 
 mkdir -p "$BENCHMARK_DIR"
 
-./scripts/sync.sh 0 32
-
 kill_snoopy() {
     i=0
     pids=
@@ -51,7 +49,7 @@ cleanup() {
     done
     az vm deallocate --no-wait --ids $vm_ids
 
-    kill -KILL 0
+    kill -KILL $snoopy_pids
 }
 trap cleanup INT QUIT TERM EXIT
 
@@ -69,28 +67,39 @@ for e in 32 16 8 4 2 1; do
         fi
     fi
 
-    snoopy_pids=
+    for latency in 125 250 500 1000 2000 4000; do
+        filename=$BENCHMARK_DIR/enclaves$e-size16777216-latency$latency.txt
+        if [ -f "$filename" ]; then
+            continue
+        fi
 
-    # Spawn suborams.
-    i=0
-    while [ "$i" -lt "$e" ]; do
-        ssh "enclave$(( i + 1 ))" "cd snoopy/build && ./suboram/host/suboram_host ./suboram/enc/suboram_enc.signed ../config/distributed-sgx-sort/$e/suboram$i.config" &
-        snoopy_pids=${snoopy_pids:+$snoopy_pids }$!
-        i=$(( i + 1 ))
+        # Set latency in configs.
+        sed -Ei "s/(\"epoch_ms\"): [0-9]+/\\1: $latency/" config/distributed-sgx-sort/*/lb.config
+        ./scripts/sync.sh 0 32
+
+        snoopy_pids=
+
+        # Spawn suborams.
+        i=0
+        while [ "$i" -lt "$e" ]; do
+            ssh "enclave$(( i + 1 ))" "cd snoopy/build && ./suboram/host/suboram_host ./suboram/enc/suboram_enc.signed ../config/distributed-sgx-sort/$e/suboram$i.config" &
+            snoopy_pids=${snoopy_pids:+$snoopy_pids }$!
+            i=$(( i + 1 ))
+        done
+
+        # Spawn load balancer.
+        ssh enclave0 "cd snoopy/build && ./load_balancer/host/load_balancer_host ./load_balancer/enc/load_balancer_enc.signed ../config/distributed-sgx-sort/$e/lb.config" | tee "$filename" &
+        snoopy_pids="$snoopy_pids $!"
+
+        # Wait 10 seconds.
+        sleep 10
+
+        # Spawn client.
+        ./build/client/client "config/distributed-sgx-sort/$e/client.config"
+
+        # Clean up.
+        kill_snoopy
     done
-
-    # Spawn load balancer.
-    ssh enclave0 "cd snoopy/build && ./load_balancer/host/load_balancer_host ./load_balancer/enc/load_balancer_enc.signed ../config/distributed-sgx-sort/$e/lb.config" | tee "$BENCHMARK_DIR/enclaves$e-size16777216.txt" &
-    snoopy_pids="$snoopy_pids $!"
-
-    # Wait 10 seconds.
-    sleep 10
-
-    # Spawn client.
-    ./build/client/client "config/distributed-sgx-sort/$e/client.config"
-
-    # Clean up.
-    kill_snoopy
 
     last_e=$e
 done
