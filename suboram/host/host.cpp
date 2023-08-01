@@ -137,7 +137,7 @@ int main(int argc, const char* argv[]) {
     {
     chrono::steady_clock::time_point begin = chrono::steady_clock::now();
     if (config[MODE] == BENCH_SORT) {
-        host.bench_sort(100);
+        host.bench_sort(4);
     } else if (config[MODE] == BENCH_PROCESS_BATCH) {
         host.bench_process_batch(10);
     } else if (config[MODE] == SERVER) {
