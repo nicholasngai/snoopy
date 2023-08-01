@@ -28,9 +28,11 @@ fi
 mkdir -p "$BENCHMARK_DIR"
 
 kill_snoopy() {
-    i=0
+    first=$1
+    last=$2
+    i=$first
     pids=
-    while [ "$i" -le 32 ]; do
+    while [ "$i" -le "$last" ]; do
         ssh enclave$i "{ killall -KILL load_balancer_host; killall suboram_host; } >/dev/null 2>/dev/null" &
         pids=${pids:+$pids }$!
         i=$(( i + 1 ))
@@ -39,7 +41,7 @@ kill_snoopy() {
 }
 
 cleanup() {
-    kill_snoopy
+    kill_snoopy 0 32
 
     vm_ids=
     i=0
@@ -75,7 +77,7 @@ for e in 32 16 8 4 2 1; do
 
         # Set latency in configs.
         sed -Ei "s/(\"epoch_ms\"): [0-9]+/\\1: $latency/" config/distributed-sgx-sort/*/lb.config
-        ./scripts/sync.sh 0 32
+        ./scripts/sync.sh 0 "$e"
 
         snoopy_pids=
 
@@ -98,7 +100,7 @@ for e in 32 16 8 4 2 1; do
         ./build/client/client "config/distributed-sgx-sort/$e/client.config"
 
         # Clean up.
-        kill_snoopy
+        kill_snoopy 0 "$e"
     done
 
     last_e=$e
