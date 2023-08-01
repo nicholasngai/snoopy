@@ -16,6 +16,7 @@ for t in 1 2 4 8; do
     fi
 
     sed -Ei "s/(\"num_blocks\"): [0-9]+/\\1: $s/;s/(\"threads\"): [0-9]+/\\1: $t/" config/distributed-sgx-sort/sort.config
+    ( cd build && make clean && make -j )
     rsync -aiv --progress ./ enclave0:"$PWD/"
 
     ssh enclave0 "$(cat <<EOF
