@@ -95,8 +95,11 @@ for e in 32 16 8 4 2 1; do
         ssh enclave0 "cd snoopy/build && ./load_balancer/host/load_balancer_host ./load_balancer/enc/load_balancer_enc.signed ../config/distributed-sgx-sort/$e/lb.config" | tee "$filename" &
         snoopy_pids="$snoopy_pids $!"
 
-        # Wait 10 seconds.
-        sleep 10
+        # Wait until load balancer reports ready.
+        while [ ! -f "$filename" ]; do
+            sleep 1
+        done
+        tail -n +1 -f "$filename" | grep -Eqm 1 '^Server listening on'
 
         # Spawn client.
         ./build/client/client "config/distributed-sgx-sort/$e/client.config"
