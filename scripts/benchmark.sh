@@ -43,13 +43,15 @@ kill_snoopy() {
 cleanup() {
     kill_snoopy 0 32
 
-    vm_ids=
-    i=0
-    while [ "$i" -le 32 ]; do
-        vm_ids="${vm_ids:+$vm_ids }/subscriptions/$SUBSCRIPTION/resourceGroups/$GROUP/providers/Microsoft.Compute/virtualMachines/enclave$i"
-        i=$(( i + 1 ))
-    done
-    az vm deallocate --no-wait --ids $vm_ids
+    if "$AZ"; then
+        vm_ids=
+        i=0
+        while [ "$i" -le 32 ]; do
+            vm_ids="${vm_ids:+$vm_ids }/subscriptions/$SUBSCRIPTION/resourceGroups/$GROUP/providers/Microsoft.Compute/virtualMachines/enclave$i"
+            i=$(( i + 1 ))
+        done
+        az vm deallocate --no-wait --ids $vm_ids
+    fi
 
     kill -KILL $snoopy_pids
 }
