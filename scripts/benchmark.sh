@@ -76,7 +76,7 @@ for e in 32 16 8 4 2 1; do
         fi
 
         # Set latency in configs.
-        sed -Ei "s/(\"epoch_ms\"): [0-9]+/\\1: $latency/" config/distributed-sgx-sort/*/lb.config
+        sed -Ei "s/(\"max_latency_ms\"): [0-9]+/\\1: $latency/" config/distributed-sgx-sort/*/lb.config
         ./scripts/sync.sh 0 "$e"
 
         snoopy_pids=
