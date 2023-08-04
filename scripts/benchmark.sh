@@ -53,7 +53,7 @@ cleanup() {
         az vm deallocate --no-wait --ids $vm_ids
     fi
 
-    kill -KILL $snoopy_pids
+    kill -KILL $snoopy_pids >/dev/null 2>/dev/null
 }
 trap cleanup INT QUIT TERM EXIT
 
