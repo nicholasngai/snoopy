@@ -41,7 +41,7 @@ kill_snoopy() {
 }
 
 cleanup() {
-    kill_snoopy 0 32
+    kill_snoopy 0 35
 
     if "$AZ"; then
         vm_ids=
@@ -58,7 +58,7 @@ cleanup() {
 trap cleanup INT QUIT TERM EXIT
 
 last_e=
-for e in 32 16 8 4 2 1; do
+for e in 32; do
     if "$AZ"; then
         if [ -n "$last_e" ]; then
             vm_ids=
@@ -77,8 +77,9 @@ for e in 32 16 8 4 2 1; do
             continue
         fi
 
-        # Set latency in configs.
-        sed -Ei "s/(\"max_latency_ms\"): [0-9]+/\\1: $latency/" config/distributed-sgx-sort/*/lb.config
+        # Set config.
+        sed -Ei "s/(\"max_latency_ms\"): [0-9]+/\\1: $latency/" config/distributed-sgx-sort/*/lb*.config
+        sed -Ei "s/(\"ip_addr\"): \".*\"/\\1: \"latency$latency\"/" config/distributed-sgx-sort/*/client.config
         ./scripts/sync.sh 0 "$e"
 
         snoopy_pids=
@@ -86,20 +87,21 @@ for e in 32 16 8 4 2 1; do
         # Spawn suborams.
         i=0
         while [ "$i" -lt "$e" ]; do
-            ssh "enclave$(( i + 1 ))" "cd snoopy/build && ./suboram/host/suboram_host ./suboram/enc/suboram_enc.signed ../config/distributed-sgx-sort/$e/suboram$i.config" &
+            ssh "enclave$(( i + 4 ))" "cd snoopy/build && ./suboram/host/suboram_host ./suboram/enc/suboram_enc.signed ../config/distributed-sgx-sort/$e/suboram$i.config" &
             snoopy_pids=${snoopy_pids:+$snoopy_pids }$!
             i=$(( i + 1 ))
         done
 
-        # Spawn load balancer.
-        ssh enclave0 "cd snoopy/build && ./load_balancer/host/load_balancer_host ./load_balancer/enc/load_balancer_enc.signed ../config/distributed-sgx-sort/$e/lb.config" | tee "$filename" &
-        snoopy_pids="$snoopy_pids $!"
-
-        # Wait until load balancer reports ready.
-        while [ ! -f "$filename" ]; do
-            sleep 1
+        # Spawn load balancers.
+        i=0
+        while [ "$i" -lt 4 ]; do
+            ssh "enclave$i" "cd snoopy/build && ./load_balancer/host/load_balancer_host ./load_balancer/enc/load_balancer_enc.signed ../config/distributed-sgx-sort/$e/lb$i.config" &
+            snoopy_pids="$snoopy_pids $!"
+            i=$(( i + 1 ))
         done
-        tail -n +1 -f "$filename" | grep -Eqm 1 '^Server listening on'
+
+        # Sleep 20 seconds.
+        sleep 20
 
         # Spawn client.
         ./build/client/client "config/distributed-sgx-sort/$e/client.config"
